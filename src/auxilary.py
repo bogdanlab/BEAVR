@@ -1,0 +1,367 @@
+import numpy as np
+import scipy.stats as st
+import math
+import scipy
+from scipy.special import logsumexp
+from optparse import OptionParser
+import random
+import sys
+from scipy.special import logit
+import cProfile, pstats, StringIO
+
+"""
+auxilary.py
+
+Describes auxilary functions and constants used in main.py,
+unity_metropolis.py, unity_gibbs.py.
+
+"""
+
+
+# global priors
+beta_lam_1 = .2
+beta_lam_2 = .2
+
+sigma_prior_a = 0
+sigma_prior_b = 0
+
+alpha_e0=10
+beta_e0=0.001
+alpha_g0=10
+beta_g0=0.10
+
+
+# global constants used to check for under/overflow
+LOG_MIN = 1.7976931348623157e-308
+LOG_MAX = 1.7976931348623157e+308
+EXP_MAX = math.log(sys.float_info.max)
+MAX = sys.float_info.max
+MIN = sys.float_info.min
+
+# burn in period decimal amount representing percentage of iterations to discard
+burn = 0.25
+
+
+def sigmoid(x):
+  return 1 / (1 + np.exp(-x))
+
+
+# prints both to console and to outfile with file descriptor f
+def print_func(line, f):
+    print(line)
+    sys.stdout.flush()
+    f.write(line)
+    f.write('\n')
+    return
+
+
+# plots trace plot
+def trace_plot(param_list, truth=None, filename=None, title=None):
+    ITS = len(param_list)
+    #fig = plt.figure()
+    #ax = plt.subplot(111)
+    #ax.plot(range(0, ITS), param_list)
+
+    #if title is not None:
+    #    plt.title(title)
+
+    #if truth is not None:
+    #    ax.axhline(y=truth, color='r', linestyle='dashed')
+
+    #if filename is None:
+    #    filename=None
+
+    #fig.savefig('/Users/ruthiejohnson/Desktop/unity_one_trait_ld/'+filename)
+
+    exit(1)
+
+# plots histogram
+def hist_plot(param_list, truth=None, filename=None):
+    ITS = len(param_list)
+    exit(1)
+    #fig = plt.figure()
+    #ax = plt.subplot(111)
+
+    # (!) fixed burnin period!
+    #start=int(ITS*burn)
+    #ax.hist(param_list[start: ])
+
+    #if truth is not None:
+    #    ax.axvline(x=truth, color='r', linestyle='dashed')
+    #plt.xlim((0, 1.0))
+
+    #fig.savefig('/Users/ruthiejohnson/Desktop/unity_one_trait_ld/'+filename)
+    return
+
+
+# performs logsumexp calculation over a vector of values
+def logsumexp_vector(a, axis=0):
+    if axis is None:
+        return logsumexp(a)
+    a = np.asarray(a)
+    shp = list(a.shape)
+    shp[axis] = 1
+    a_max = a.max(axis=axis)
+    s = np.log(np.exp(a - a_max.reshape(shp)).sum(axis=axis))
+    lse  = a_max + s
+    return lse
+
+
+# prints software header
+def print_header(p_sim, h_sim, N, M, ld_const, its, sumstats_file=None, ld_file=None):
+    if h_sim is not None and p_sim is not None:
+        header="Simulating with... p: %.4f, h: %.4f, N: %d, M: %d, its: %d" % (p_sim, h_sim, N, M, its)
+    else:
+        header="Using sumstats file provided by user: %s" % sumstats_file
+
+    if ld_const == "0":
+        header= header+"\nSimulating without LD..."
+    elif ld_file is not None:
+        header=header+"\nUsing LD file: %s" % ld_file
+    elif ld_const is not None:
+        ld_statement="\nSimulating with LD: %s..." % ld_const
+        header= header+ld_statement
+    else:
+        print "LD const or LD file needed...exiting"
+        exit(1)
+    return header
+
+
+def summarize_gamma(gamma_true, gamma_est, graph='n'):
+    cor_matrix = np.corrcoef(gamma_true, gamma_est)
+    gamma_corr = cor_matrix[1,0]
+
+    exit(1)
+  #  if graph == 'y':
+#        fig = plt.figure()
+#        ax = plt.subplot(111)
+#        ax.scatter(gamma_true, gamma_est)
+#        plt.title("True gamma vs. Est Gamma - corr: %.2f" % gamma_corr)
+#        plt.ylim((-.20, .20))
+#        plt.xlim((-.20, .20))
+
+
+        #fig.savefig('/Users/ruthiejohnson/Desktop/stan/fig.gamma_corr.png')
+
+    return gamma_corr
+
+
+# simulates gwas effect sizes
+def simulate(p_sim, h_sim, N, M, V_half=None):
+    c = st.bernoulli.rvs(p=p_sim, size=M)
+    true_p = (np.sum(c)/float(M))
+
+    sd = math.sqrt(h_sim/(M*p_sim))
+    gamma = st.norm.rvs(loc=0, scale=sd, size=M)
+    beta = np.multiply(gamma, c)
+    sigma_e = (1-h_sim)/float(N)
+
+    if V_half is None: # beta hats
+        z = st.norm.rvs(loc=beta, scale=math.sqrt(sigma_e), size=M)
+    else: # beta twiddles
+        mu = np.matmul(V_half, beta)
+        cov = np.multiply(np.eye(M), sigma_e)
+        z = st.multivariate_normal.rvs(mean=mu, cov=cov)
+
+
+    return z, c, gamma, true_p
+
+
+# simulates gwas effect sizes assuming an infintiesimal variance (h/M)
+def simulate_ivar(p_sim, h_sim, N, M, V_half=None):
+    c = st.bernoulli.rvs(p=p_sim, size=M)
+    true_p = (np.sum(c)/float(M))
+
+    sd = math.sqrt(h_sim/(M))
+    gamma = st.norm.rvs(loc=0, scale=sd, size=M)
+    beta = np.multiply(gamma, c)
+    sigma_e = (1-h_sim)/float(N)
+
+    if V_half is None: # beta hats
+        z = st.norm.rvs(loc=beta, scale=math.sqrt(sigma_e), size=M)
+    else: # beta twiddles
+        mu = np.matmul(V_half, beta)
+        cov = np.multiply(np.eye(M), sigma_e)
+        z = st.multivariate_normal.rvs(mean=mu, cov=cov)
+
+
+    return z, c, gamma, true_p
+
+
+# simulates GWAS across entire genome
+def simulate_ivar_gw(p_sim, h_sim, N, M, B, ld_const, rand_gw=False, m_var = None, h_var=None):
+
+    z_gw = []
+    ld_gw = []
+    h_gw = []
+    c_gw = []
+
+    if m_var is None:
+        m_var = 100
+
+    # make vector of effects for each blocks
+    for b in range(0, B):
+        if rand_gw:
+            M_b = st.norm.rvs(M, m_var)
+        else:
+            M_b = M
+
+        if rand_gw and h_var is not None:
+            H_b = st.norm.rvs(h_sim, h_var)
+        else:
+            H_b = h_sim
+
+        ld_half_b = simulate_ld_half(M_b, ld_const)
+
+        p_b = p_sim
+
+        z_b, c_b, gamma_b, true_p = simulate_ivar(p_b, H_b, N, M_b, ld_half_b)
+
+        z_gw.append(z_b)
+        ld_gw.append(ld_half_b)
+        h_gw.append(H_b)
+        c_gw.append(c_b)
+
+    return z_gw, ld_gw, h_gw, c_gw
+
+
+
+# performs matrix trunncation to ensure matrix is positive semi-definite
+def truncate_matrix(V):
+    # make V pos-semi-def
+    d, Q = np.linalg.eigh(V, UPLO='U')
+
+    # reorder eigenvectors from inc to dec
+    idx = d.argsort()[::-1]
+    Q[:] = Q[:, idx]
+
+    # truncate small eigenvalues for stability
+    d_trun = truncate_eigenvalues(d)
+
+    # mult decomp back together to get final V_trunc
+    M1 = np.matmul(Q, np.diag(d_trun))
+    V_trun = np.matmul(M1, np.matrix.transpose(Q))
+
+    return V_trun
+
+
+# calculate the 1/2 power of a matrix and then performs matrix truncation to ensure matrix is positive semi-definite
+def truncate_matrix_half(V):
+    # make V pos-semi-def
+    d, Q = np.linalg.eigh(V, UPLO='U')
+
+    # reorder eigenvectors from inc to dec
+    idx = d.argsort()[::-1]
+    Q[:] = Q[:, idx]
+    #d[:] = d.argsort()[::-1]
+
+    # truncate small eigenvalues for stability
+    d_trun = truncate_eigenvalues(d)
+
+    d_trun_half = np.sqrt(d_trun)
+
+    # mult decomp back together to get final V_trunc
+    M1 = np.matmul(Q, np.diag(d_trun_half))
+    V_trun_half = np.matmul(M1, np.matrix.transpose(Q))
+
+    return V_trun_half
+
+
+def truncate_eigenvalues(d):
+    M = len(d)
+
+    # order evaules in descending order
+    d[::-1].sort()
+
+    #running_sum = 0
+    d_trun = np.zeros(M)
+
+    # keep only positive evalues
+    for i in range(0,M):
+        if d[i] > 0:
+            # keep evalue
+            d_trun[i] = d[i]
+
+    return d_trun
+
+
+# simulate an LD matrix
+def simulate_ld(M):
+    d = np.random.random(M)
+    V = np.diag(d)
+
+    # decreasing values along the diagonal
+    for m in range(0, M):
+        center = V[m,m]
+        power = 0
+        for l in range(m, M):
+            V[m, l] = center ** power
+            power += 1
+    # reflect to bottom triangluar
+    for i in range(M):
+        for j in range(i, M):
+            V[j][i] = V[i][j]
+
+    # ensure pos-semi ef
+    V[:] = truncate_matrix(V)
+
+    return V
+
+
+# simulate V^1/2 with either a fixed constant ld_const or random values
+def simulate_ld_half(M, ld_const):
+
+    if ld_const == "r":
+        # random diagonal
+        d = np.random.random(M)
+        V = np.diag(d)
+
+    else:# fixed diagonal
+        ld_const = float(ld_const)
+        d = np.ones(M)*ld_const
+        V = np.diag(d)
+
+    # decreasing values along the diagonal
+    for m in range(0, M):
+        center = V[m,m]
+        power = 0
+        for l in range(m, M):
+            V[m, l] = center ** power
+            power += 1
+
+    # reflect to bottom triangluar
+    for i in range(M):
+        for j in range(i, M):
+            V[j][i] = V[i][j]
+
+    #V_half_true = scipy.linalg.fractional_matrix_power(V, .5)
+    # ensure pos-semi ef
+    V_half = truncate_matrix_half(V)
+
+    return V_half
+
+
+# calculate the negative-1/2 power of a matrix and then performs matrix truncation to ensure matrix is positive semi-definite
+def truncate_matrix_neg_half(V):
+    # make V pos-semi-def
+    d, Q = np.linalg.eigh(V, UPLO='U')
+
+    # reorder eigenvectors from inc to dec
+    idx = d.argsort()[::-1]
+    Q[:] = Q[:, idx]
+
+    # truncate small eigenvalues for stability
+    d_trun = truncate_eigenvalues(d)
+
+    # square root of eigenvalues
+    d_trun_half = np.sqrt(d_trun)
+
+    # recipricol eigenvalues to do inverse
+    d_trun_half_neg = np.divide(1, d_trun_half, where=d_trun_half!=0)
+
+
+    # mult decomp back together to get final V_trunc
+    M1 = np.matmul(Q, np.diag(d_trun_half_neg))
+    V_trun_half_neg = np.matmul(M1, np.matrix.transpose(Q))
+
+    return V_trun_half_neg

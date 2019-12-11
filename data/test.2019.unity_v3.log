@@ -1,0 +1,15 @@
+- - - - - - - - - - UNITY v3.0 - - - - - - - - -
+Run id: test
+Heritability: 0.5000
+Sample size: 500000
+Iterations: 1000
+Seed: 2019
+Getting effect sizes from: /u/home/r/ruthjohn/BEAVR/data/p_0.01_h2_0.5_N_500000_ld_1_M_372_1.gwas
+Using ld  from dir: /u/home/r/ruthjohn/BEAVR/data/identity_372.ld
+Outputing simulated GWAS to dir: /u/home/r/ruthjohn/BEAVR/data
+- - - - - - - - - - - - - - - - - - - - - - - -
+Accept percent: 9.0000
+Estimate p: 0.006885
+SD p: 0.005308
+Avg log like: 0
+Var log like: 0
