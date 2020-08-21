@@ -114,3 +114,35 @@ An example command follows:
               --M_gw $M_GW \
  	            --dp
 ``` 
+
+## Step 3: Interpreting the output 
+
+A log file will be created with the `.log` extension. An example output looks like the following:
+
+```
+- - - - - - - - - - UNITY v3.0 - - - - - - - - -
+Run id: test
+Heritability: 0.5000
+Sample size: 500000
+Iterations: 1000
+Seed: 2019
+Getting effect sizes from: /u/home/r/ruthjohn/BEAVR/data/p_0.01_h2_0.5_N_500000_ld_1_M_372_1.gwas
+Using ld  from dir: /u/home/r/ruthjohn/BEAVR/data/identity_372.ld
+Outputing simulated GWAS to dir: /u/home/r/ruthjohn/BEAVR/data
+- - - - - - - - - - - - - - - - - - - - - - - -
+Accept percent: 9.0000
+Estimate p: 0.006885
+SD p: 0.005308
+```
+
+The first set of information reports all of the options the user has specified. The second set of lines are described as:
+
+```
+Accept percent - acceptance percentage of the MCMC
+Estimate p - posterior mean of the local polygenicity 
+SD p - standard deviation from the posterior distribution
+```
+
+## Bugs/Errors/Contact
+
+The BEAVR software is still in beta version and we expect quite a few improvements in the workflow. For immediate questions/comments/concerns, please submit a Github issue so that all users can see the question/answer. For specific questions, feel free to email: ruthjohnson@g.ucla.edu
