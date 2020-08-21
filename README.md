@@ -41,7 +41,7 @@ Simply, run the test script:
 
 ## Data
 
-As input, BEAVR requires a file with SNP-SNP correlations, or LD (no header). Additionally, we require a file with standardized effects from gwas. Each region requires its own set of files. For now, we require that the header of the standardized effect sizes be labeled as `BETA_TRUE` (we are currently working to allow users to specify their own header); all other columns will be ignored.
+As input, BEAVR requires a file with SNP-SNP correlations, or LD (no header). Additionally, we require a file with standardized effects from gwas. Each region requires its own set of files. For now, we require that the header of the standardized effect sizes be labeled as `BETA_STD` (we are currently working to allow users to specify their own header); all other columns will be ignored.
 
 For details on how to standardize the effects from GWAS, please see: https://huwenboshi.github.io/data%20management/2017/11/23/tips-for-formatting-gwas-summary-stats.html
 
@@ -65,7 +65,9 @@ BETA_STD BETA_TRUE n snp z BETA_STD_I
 
 ## Step 1: Inverse transform gwas effects and LD
 
-To avoid additional computations, we do an inverse transformation on the GWAS effects and LD matrix. Since this only needs to be performed once, we do these computations in a separate step. We provide scripts below:
+To avoid additional computations, we do an inverse transformation on the GWAS effects and LD matrix. Since this only needs to be performed once, we do these computations in a separate step. Note that this will automatically append an additional column called `BETA_STD_I` onto your GWAS file. 
+
+We provide scripts below:
 
 ```
 # transform LD
@@ -80,6 +82,24 @@ python ${SCRIPT_DIR}/helper/transform_betas.py  \
 ```
 
 ## Step 2: Estimate local polygenicity
+
+Below is a summary of the current flags and options for running BEAVR:
+
+```
+--seed int for setting the seed (note that because this is an MCMC, there is stochasticity in the inference)
+--N sample size from GWAS
+--id string that will be the prefix for output files
+--its how many MCMC iterations (we recommend 1000)
+--ld_half_file full path to transformed LD file (see above for more details)
+--gwas_file full path to GWAS file with transformed effects (see above for more details)
+--H_gw pre-computed heritability for the region
+--M_gw number of SNPs in the region
+--outdir full path to designated output directory
+--dp speedup flag (this enables speedup)
+
+```
+
+An example command follows:
 
 ```
         python ${SRC_DIR}/main_new.py \
