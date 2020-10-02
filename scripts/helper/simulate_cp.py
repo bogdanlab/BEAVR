@@ -58,7 +58,7 @@ def main():
     parser.add_option("--outdir", dest="outdir")
     parser.add_option("--seed", dest="seed", default=100)
     parser.add_option("--ld_file", dest="ld_file")
-    parser.add_option("--ld", type=int, dest="ld_flag", default=1)
+    parser.add_option("--ld", type=int, dest="ld_flag")
     parser.add_option("--rsid_file", dest="rsid_file")
 
     (options, args) = parser.parse_args()

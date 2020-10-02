@@ -1,0 +1,33 @@
+#!/usr/bin/env sh
+#$ -cwd
+#$ -j y
+
+source /u/local/Modules/default/init/modules.sh
+module load python/2.7
+
+H2=0.50
+M_GW=500000
+p_sim=0.01
+N=500000
+
+# CHANGE THIS DIRECTORY TO YOUR OWN 
+MASTER_DIR=/u/home/r/ruthjohn/BEAVR/ukbb_sample/
+
+SCRIPT_DIR=${MASTER_DIR}/scripts
+SIM_DIR=${MASTER_DIR}/ukbb_sample/sumstats
+LD_FILE=${MASTER_DIR}/ukbb_sample/ld/ukbb.1000.ld.npy 
+
+for i in {1..100}
+do
+
+    python $SCRIPT_DIR/simulate.py \
+          --h2_gw $H2 \
+          --M_gw $M_GW \
+          --p_sim $P_SIM \
+          --N $N \
+          --outdir $SIM_DIR \
+          --seed $i \
+          --ld_file $LD_FILE \
+          --rsid_file $RSID_FILE
+
+done 
