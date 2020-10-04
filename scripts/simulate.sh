@@ -14,9 +14,8 @@ N=500000
 MASTER_DIR=/u/home/r/ruthjohn/BEAVR
 
 SCRIPT_DIR=${MASTER_DIR}/scripts/helper
-SIM_DIR=${MASTER_DIR}/ukbb_sample/sumstats
-LD_FILE=${MASTER_DIR}/ukbb_sample/ld/ukbb.1000.ld.npy 
-RSID_FILE=${MASTER_DIR}/ukbb_sample/ld/ukbb.1000.snplist 
+SIM_DIR=${MASTER_DIR}/1kg_sample/sumstats
+LD_FILE=${MASTER_DIR}/1kg_sample/ld/1KG.npy
 
 for i in {1..1}
 do
@@ -28,8 +27,7 @@ do
           --N $N \
           --outdir $SIM_DIR \
           --seed $i \
-          --ld_file $LD_FILE \
-          --rsid_file $RSID_FILE
+          --ld_file $LD_FILE 
 
 done 
 
@@ -42,7 +40,6 @@ do
           --N $N \
           --outdir $SIM_DIR \
           --seed $i \
-          --ld_file $LD_FILE \
-          --rsid_file $RSID_FILE
+          --ld_file $LD_FILE 
 
 done
